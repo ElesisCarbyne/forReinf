@@ -2,15 +2,17 @@ import gymnasium as gym
 from torch import optim
 import torch
 from torch.nn import functional as F
+import torch.multiprocessing as mp
 
-def worker(t, worker_model, counter, params):
+def worker(t, worker_model, counter, params, lock):
     worker_env = gym.make("CartPole-v1") # 환경 불러오기
     worker_opt = optim.Adam(lr=1e-4, params=worker_model.parameters())
 
     for i in range(params["epochs"]):
         state_values, logprobs, rewards = run_episode(worker_env, worker_model)
         actor_loss, critic_loss, ep_len = update_params(worker_opt, state_values, logprobs, rewards)
-        counter.value = counter.value + 1
+        with lock:
+            counter.value = counter.value + 1
 
 def run_episode(worker_env, worker_model):
     cur_state = torch.from_numpy(worker_env.reset()[0]).float()
@@ -18,7 +20,8 @@ def run_episode(worker_env, worker_model):
     done = False # 에피소드 종료 여부
 
     while (done == False):
-        policy, state_value = worker_model(cur_state)
+        with lock:
+            policy, state_value = worker_model(cur_state)
         state_values.append(state_value)
         logits = policy.view(-1) # 1차원 텐서로 변환한다
         action_dist = torch.ditributions.Categorical(logtis=logits) # 카테고리컬 분포는 시행 횟수 n이 1인 다항분포와 동일한 분포이다
