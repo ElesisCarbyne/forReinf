@@ -2,19 +2,19 @@ import gymnasium as gym
 from torch import optim
 import torch
 from torch.nn import functional as F
-import torch.multiprocessing as mp
 
-def worker(t, worker_model, counter, params, lock):
+def worker(lock, t, worker_model, counter, params):
     worker_env = gym.make("CartPole-v1") # 환경 불러오기
-    worker_opt = optim.Adam(lr=1e-4, params=worker_model.parameters())
+    with lock:
+        worker_opt = optim.Adam(lr=1e-4, params=worker_model.parameters())
 
     for i in range(params["epochs"]):
-        state_values, logprobs, rewards = run_episode(worker_env, worker_model)
-        actor_loss, critic_loss, ep_len = update_params(worker_opt, state_values, logprobs, rewards)
+        state_values, logprobs, rewards = run_episode(lock, worker_env, worker_model)
+        actor_loss, critic_loss, ep_len = update_params(lock, worker_opt, state_values, logprobs, rewards)
         with lock:
             counter.value = counter.value + 1
 
-def run_episode(worker_env, worker_model):
+def run_episode(lock, worker_env, worker_model):
     cur_state = torch.from_numpy(worker_env.reset()[0]).float()
     state_values, logprobs, rewards = [], [], []
     done = False # 에피소드 종료 여부
@@ -40,7 +40,7 @@ def run_episode(worker_env, worker_model):
 
     return state_values, logprobs, rewards
 
-def update_params(worker_opt, state_values, logprobs, rewards, clc=0.1, gamma=0.95):
+def update_params(lock, worker_opt, state_values, logprobs, rewards, clc=0.1, gamma=0.95):
     rewards = torch.tensor(rewards).flip(dim=(0,)).view(-1)
     logprobs = torch.stack(logprobs).flip(dims=(0,)).view(-1) # torch.stack 대신 torch.tensor를 사용해도 된다
     state_values = torch.stack(values).flip(dims=(0,)).view(-1) # torch.stack 대신 torch.tensor를 사용해도 된다
@@ -58,8 +58,9 @@ def update_params(worker_opt, state_values, logprobs, rewards, clc=0.1, gamma=0.
     loss = actor_loss.sum() + clc * critic_loss.sum() # 행위자가 비평자보다 더 빨리 학습하도록 하기 위해 clc=0.1을 곱한다
                                                       # 비평자의 전체 손실 중 일부로만 역전파를 수행하여 비평자의 학습을 지연시킨다
     # 역전파 수행
-    worker_opt.zero_grad()
-    loss.backward()
-    worker_opt.step()
+    with lock:
+        worker_opt.zero_grad()
+        loss.backward()
+        worker_opt.step()
 
     return actor_loss, critic_loss, len(rewards)
