@@ -3,16 +3,16 @@ from torch import optim
 import torch
 from torch.nn import functional as F
 
-def worker(lock, t, worker_model, counter, params):
+def worker(t, lock, worker_model, counter, params):
     worker_env = gym.make("CartPole-v1") # 환경 불러오기
     with lock:
         worker_opt = optim.Adam(lr=1e-4, params=worker_model.parameters())
 
-    for i in range(params["epochs"]):
-        state_values, logprobs, rewards = run_episode(lock, worker_env, worker_model)
-        actor_loss, critic_loss, ep_len = update_params(lock, worker_opt, state_values, logprobs, rewards)
-        with lock:
-            counter.value = counter.value + 1
+        for i in range(params["epochs"]):
+            state_values, logprobs, rewards = run_episode(lock, worker_env, worker_model)
+            actor_loss, critic_loss, ep_len = update_params(lock, worker_opt, state_values, logprobs, rewards)
+            with lock:
+                counter.value = counter.value + 1
 
 def run_episode(lock, worker_env, worker_model):
     cur_state = torch.from_numpy(worker_env.reset()[0]).float()
