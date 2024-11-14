@@ -4,6 +4,7 @@ import numpy as np
 from torch.nn import functional as F
 import torch.multiprocessing as mp
 import gymnasium as gym
+import time as t
 
 class ActorCritic(nn.Module):
     def __init__(self):
@@ -83,8 +84,8 @@ def update_params(worker_opt, state_values, logprobs, rewards, clc=0.1, gamma=0.
     return actor_loss, critic_loss, len(rewards) 
 
 
-''' 몬테카를로 방식 분산 이익 행위자-비평자 학습 '''
 if __name__ == "__main__":
+    ''' 몬테카를로 방식 분산 이익 행위자-비평자 학습 '''
     MasterNode = ActorCritic()
     MasterNode.share_memory() # share_memory() 메서드는 이를 호출한 텐서를 shared_memory로 이동시킨다
                                # 여기서는 shared_memory에 모델의(여기서는 ActorCritic()) 매개변수를 저장하여,
@@ -96,7 +97,8 @@ if __name__ == "__main__":
     }
     
     counter = mp.Value("i", 0)
-    
+
+    start = t.time()
     for i in range(params["n_workers"]):
         p = mp.Process(target=worker, args=(i, MasterNode, counter, params)) # args는 프로세스에게 할당할 작업의 인자를 의미한다
         p.start() # 프로세스가 실제로 생성된다
@@ -110,6 +112,8 @@ if __name__ == "__main__":
     for p in processes:
         p.terminate() # 프로세스를 종료한다
                       # 부모 프로세스는 terminate() 메서드를 사용하지 않아도 자동으로 종료된다(하지만 자식 프로세스는 자동으로 종료되지 않는다)
+    end = t.time()
+    print(f"total time : {(end - start) / 60:.6f}")
     
     print(counter.value, processes[1].exitcode) # 공유 객체에 저장된 값을 출력한다
                                                 # .exitcode는 자식 프로세스의 종료 코드(exit code)이다
