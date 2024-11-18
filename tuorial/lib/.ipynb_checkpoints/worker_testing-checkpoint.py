@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 import torch.multiprocessing as mp
-# from lib.worker_testing import square3, square4
 
 def square(x):
     return np.square(x)

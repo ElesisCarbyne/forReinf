@@ -1,5 +1,5 @@
-from torch import optim
 import torch
+from torch import nn, optim
 from torch.nn import functional as F
 import gymnasium as gym
 

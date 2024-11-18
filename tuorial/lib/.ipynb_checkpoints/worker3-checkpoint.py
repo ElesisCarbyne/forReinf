@@ -1,8 +1,8 @@
 import torch
 from torch import nn, optim
-import numpy as np
 from torch.nn import functional as F
 import torch.multiprocessing as mp
+import numpy as np
 import gymnasium as gym
 import time as t
 
@@ -27,7 +27,11 @@ class ActorCritic(nn.Module):
 
 def worker(t, worker_model, counter, params):
     worker_env = gym.make("CartPole-v1") # 환경 불러오기
-    worker_opt = optim.Adam(lr=1e-4, params=worker_model.parameters())
+    try:
+        worker_opt = optim.Adam(lr=1e-4, params=worker_model.parameters())
+    except:
+        print("Error occur(B)...")
+        return
 
     for i in range(params["epochs"]):
         state_values, logprobs, rewards = run_episode(worker_env, worker_model)
@@ -81,8 +85,7 @@ def update_params(worker_opt, state_values, logprobs, rewards, clc=0.1, gamma=0.
     loss.backward()
     worker_opt.step()
 
-    return actor_loss, critic_loss, len(rewards) 
-
+    return actor_loss, critic_loss, len(rewards)
 
 if __name__ == "__main__":
     ''' 몬테카를로 방식 분산 이익 행위자-비평자 학습 '''
@@ -113,7 +116,7 @@ if __name__ == "__main__":
         p.terminate() # 프로세스를 종료한다
                       # 부모 프로세스는 terminate() 메서드를 사용하지 않아도 자동으로 종료된다(하지만 자식 프로세스는 자동으로 종료되지 않는다)
     end = t.time()
-    print(f"total time : {(end - start) / 60:.6f}")
+    print(f"total time : {(end - start) / 60:.6f} min")
     
     print(counter.value, processes[1].exitcode) # 공유 객체에 저장된 값을 출력한다
                                                 # .exitcode는 자식 프로세스의 종료 코드(exit code)이다
