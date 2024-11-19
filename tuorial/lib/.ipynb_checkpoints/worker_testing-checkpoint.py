@@ -18,6 +18,11 @@ def square4(i, x, queue):
     print("In process {}: {}".format(i, x))
     return queue.put(x)
 
+def square5(i, x):
+    x.pow_(2)
+    print("In process {}: {}".format(i, x))
+    
+
 if __name__ == "__main__":
     processes = [] # 프로세스 풀 생성
     queue = mp.Queue() # 프로세스가 반환하는 결과물을 취합하기 위한 큐 생성
