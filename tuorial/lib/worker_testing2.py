@@ -2,11 +2,12 @@ import torch
 import torch.multiprocessing as mp
 
 def square(i, x):
+    print("sub-sub-process is working...")
     x.pow_(2)
     print("In process {}: {}".format(i, x))
 
 def worker(x, proc_num):
-    print("root sub-process is working")
+    print("sub-process is working...")
     processes = [] # 프로세스 풀 생성
     proc_num = 8 # 생성할 프로세스의 개수
     # mp.Pool()은 어떤 프로세스에게 어떤 작업을 배정할지를 자동으로 결정하는 반면,
@@ -25,8 +26,6 @@ def worker(x, proc_num):
     for proc in processes:
         proc.join() # join() 메서드를 호출한 프로세스가 종료될 때까지 주 프로세스가 해당 하위 프로세스를 기다린다(공식 문서는 이를 block이라고 표현하고 있다)
                     # 좀비 프로세스가 생성되는 것을 막기 위해 가급적이면 .join() 을 사용해서 프로세스를 종료시키는 것이 좋다
-    for proc in processes:
         proc.terminate() # 프로세스를 종료한다(자원 반환은 수행하지 않는다)
                          # 부모 프로세스를 종료하더라도 그 밑의 자식 프로세스들은 종료되지 않는다(이 경우 자식 프로세스들은 "기아"가 된다)
-    for proc in processes:
         proc.close() # 프로세스 객체를 해체하여 그것과 관련된 모든 자원들을 회수한다

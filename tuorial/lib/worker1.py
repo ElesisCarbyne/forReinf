@@ -44,7 +44,7 @@ def worker(proc_num, counter, model_save_path):
         - lock을 재귀적으로 획득하는 동안은 첫 lock을 통해 선점한 공유 자원에 대하여 계속 소유권을 가지고 있게 되며, lock을 획득한 횟수만큼 해제해 주어야 lock이 완전히 해제된다
         - recursive lock을 해석하면 "A라는 함수가 앞서 lock을 획득했는데, 나도 그 A라는 함수니까 해당 공유 자원에 접근할 수 있어. 그런데 내가 앞선 A함수보다 용건이 급해서 그 공유 자원을 먼저 사용할게(lock)." 이라고 할 수 있다
     '''
-    lock = mp.Lock() # mp.Value()에 증감 연산과 같이 읽기-쓰기 작업이 동시에 수행되는 연산을 수행할 경우 lock을 먼저 획득해야 정상적으로 연산이 이루어진다
+    lock = mp.Lock() # mp.Value()에 증감 연산과 같이 읽기-쓰기 작업을 동시에 수반하는 연산을 수행할 경우 lock을 먼저 획득해야 연산 결과에 대한 일관성이 유지된다
 
     start = t.time()
     for i in range(proc_num):
@@ -58,12 +58,12 @@ def worker(proc_num, counter, model_save_path):
                  # 즉, join() 메서드가 하는 일은 부모 프로세스가 자식 프로세스보다 먼저 종료되지 못하도록 막는다
                  # join() 메서드를 호출하면 하위 프로세스의 작업이 모두 완료된 후, 주 프로세스의 나머지 작업이 진행된다
 
-    print(f"running time: {(t.time() - start) / 60:.4f} min")
+    print(f"sub-sub-process cluster running time: {(t.time() - start) / 60:.4f} min")
     torch.save(model.state_dict(), model_save_path) # 학습된 모델의 매개변수를 저장한다
     
-    print("counter.value: ", counter.value)
+    print("counter.value in sub-process: ", counter.value)
     for i, p in enumerate(processes):
-        print(f"sub-sub process {i}'s exitcode: '{p.exitcode}") # 공유 객체에 저장된 값을 출력한다
+        print(f"sub-sub-process 0{i}'s exitcode: '{p.exitcode}") # 공유 객체에 저장된 값을 출력한다
                                                         # .exitcode는 자식 프로세스의 종료 코드(exit code)이다
                                                         # 자식 프로세스가 아직 종료되지 않았다면 "None"을 반환하고,
                                                         # 정상적으로 종료되었다면 "0"을 반환한다
@@ -80,11 +80,11 @@ def learner(t, worker_model, counter, epochs, lock):
     for i in range(epochs):
         state_values, logprobs, rewards = run_episode(worker_env, worker_model)
         actor_loss, critic_loss, ep_len = update_params(worker_opt, state_values, logprobs, rewards)
-        with lock:
-            counter.value = counter.value + 1
-            print(counter.value)
-        # counter.value = counter.value + 1
-        # print(counter.value)
+        # with lock:
+        #     counter.value = counter.value + 1
+        #     print(counter.value)
+        counter.value = counter.value + 1
+        print(counter.value)
 
 def run_episode(worker_env, worker_model):
     cur_state = torch.from_numpy(worker_env.reset()[0]).float()
