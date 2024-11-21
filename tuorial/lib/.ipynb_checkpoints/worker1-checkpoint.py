@@ -80,11 +80,11 @@ def learner(t, worker_model, counter, epochs, lock):
     for i in range(epochs):
         state_values, logprobs, rewards = run_episode(worker_env, worker_model)
         actor_loss, critic_loss, ep_len = update_params(worker_opt, state_values, logprobs, rewards)
-        # with lock:
-        #     counter.value = counter.value + 1
-        #     print(counter.value)
-        counter.value = counter.value + 1
-        print(counter.value)
+        with lock:
+            counter.value = counter.value + 1
+            print(counter.value)
+        # counter.value = counter.value + 1
+        # print(counter.value)
 
 def run_episode(worker_env, worker_model):
     cur_state = torch.from_numpy(worker_env.reset()[0]).float()
@@ -94,7 +94,7 @@ def run_episode(worker_env, worker_model):
     while (done == False):
         policy, state_value = worker_model(cur_state)
         state_values.append(state_value)
-        logits = policy.view(-1) # 1차원 텐서로 변환한다
+        logits = policy.view(-1) # 크기가 2인 1차원 텐서로 변환한다
         action_dist = torch.distributions.categorical.Categorical(logits=logits) # 카테고리컬 분포는 시행 횟수 n이 1인 다항분포와 동일한 분포이다
                                                                     # 여기서의 역할은 주어진 로짓을 확률분포로 변환하여 이 확률분포를 토대로 표본을 추출할 수 있도록 하는 것이다
         action = action_dist.sample()
@@ -104,7 +104,6 @@ def run_episode(worker_env, worker_model):
         cur_state = torch.from_numpy(next_state).float()
         if done:
             reward = -10
-            worker_env.reset()
         else:
             reward = 1.0
         rewards.append(reward)
@@ -124,10 +123,13 @@ def update_params(worker_opt, state_values, logprobs, rewards, clc=0.1, gamma=0.
     Returns = torch.stack(Returns).view(-1) # 텐서가 원소인 리스트를 torch.tensor를 통해 텐서로 변환하면 오류가 발생하는데, torch.stack을 사용하면 오류없이 텐서로 변환할 수 있다
     Returns = F.normalize(Returns, dim=0) # 반환값들에 대해 정규화를 수행하여 [-1.0, 1.0] 구간의 값으로 변환한다
                                           # 이것때문에 비평자의 출력에 tanh를 적용한 것이다
-    actor_loss = -1 * logprobs * (Returns - state_values.detach())
-    critic_loss = torch.pow(state_values - Returns, 2)
+    actor_loss = -1 * logprobs * (Returns - state_values.detach()) # 크기가 n인 1차원 텐서이다
+    critic_loss = torch.pow(state_values - Returns.detach(), 2) # 크기가 n인 1차원 텐서이다
     loss = actor_loss.sum() + clc * critic_loss.sum() # 행위자가 비평자보다 더 빨리 학습하도록 하기 위해 clc=0.1을 곱한다
                                                       # 비평자의 전체 손실 중 일부로만 역전파를 수행하여 비평자의 학습을 지연시킨다
+    # print(f"about actor_loss: {actor_loss.size()}, {actor_loss.shape}, {type(actor_loss)}")
+    # print(f"about critic_loss: {critic_loss.size()}, {critic_loss.shape}, {type(critic_loss)}")
+    
     # 역전파 수행
     worker_opt.zero_grad()
     loss.backward()
