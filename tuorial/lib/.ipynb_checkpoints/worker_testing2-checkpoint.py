@@ -1,6 +1,7 @@
 import torch
 import torch.multiprocessing as mp
 
+print("worker_testing2 is working now...")
 def square(i, x):
     print("sub-sub-process is working...")
     x.pow_(2)
@@ -9,7 +10,6 @@ def square(i, x):
 def worker(x, proc_num):
     print("sub-process is working...")
     processes = [] # 프로세스 풀 생성
-    proc_num = 8 # 생성할 프로세스의 개수
     # mp.Pool()은 어떤 프로세스에게 어떤 작업을 배정할지를 자동으로 결정하는 반면,
     # mp.Process()는 어떤 프로세스에게 어떤 작업을 배정할지를 수동으로 지정한다
     # 프로세스 작업 수행 과정은 CMD에서 확인할 수 있다(.run() 메서드를 사용하면 직접 출력해 볼 수 있다)

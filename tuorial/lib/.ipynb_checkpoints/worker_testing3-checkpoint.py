@@ -1,7 +1,7 @@
 import torch
 import torch.multiprocessing as mp
+from lib.worker_testing2 import square
 
-print("worker_testing2 is working now...")
 def square(i, x):
     print("sub-sub-process is working...")
     x.pow_(2)

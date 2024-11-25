@@ -42,7 +42,7 @@ def worker(model_save_path):
             cur_state = torch.from_numpy(env.reset()[0]).float()
         env.render() # 에이전트가 현재 보고 있는 것의 시각화를 위해 환경을 렌더링 한다
                      # 이전에는 render() 메서드가 인자를 받았지만, 지금은 이 인자를 make() 메서드가 받도록 수정되었다
-    print("model did not failed on game!!!")
+    print("Model did not failed on game!!!")
 
 if __name__ == "__main__":
     ''' 학습 후 시험(test) '''
