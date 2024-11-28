@@ -24,7 +24,7 @@ class ActorCritic(nn.Module):
                                                  # 이익 계산에서의 Returns를 정규화하여 [-1.0, 1.0] 구간의 값으로 변환하기 때문이다
         return actor, critic
 
-def worker(proc_num, counter, queue, params, model_save_path):
+def worker(proc_num, counter, params, model_save_path):
     model = ActorCritic()
     model.share_memory() # share_memory() 메서드는 이를 호출한 텐서를 shared_memory로 이동시킨다
                          # 여기서는 shared_memory에 모델의(여기서는 ActorCritic()) 매개변수를 저장하여,
@@ -47,7 +47,7 @@ def worker(proc_num, counter, queue, params, model_save_path):
 
     start = t.time()
     for i in range(proc_num):
-        p = mp.Process(target=learner, args=(i, model, counter, params, queue, lock)) # args는 프로세스에게 할당할 작업의 인자를 의미한다
+        p = mp.Process(target=learner, args=(i, model, counter, params, lock)) # args는 프로세스에게 할당할 작업의 인자를 의미한다
         p.start() # 프로세스를 실행한다
         processes.append(p)
     
@@ -71,18 +71,20 @@ def worker(proc_num, counter, queue, params, model_save_path):
                       # 부모 프로세스는 terminate() 메서드를 사용하지 않아도 자동으로 종료된다(하지만 자식 프로세스는 자동으로 종료되지 않는다)
         p.close() # 프로세스 객체를 해체하여 그것과 관련된 모든 자원들을 회수한다
 
-def learner(t, worker_model, counter, params, queue, lock):
+def learner(t, worker_model, counter, params, lock):
     worker_env = gym.make("CartPole-v1") # 환경 불러오기
     worker_opt = optim.Adam(lr=1e-4, params=worker_model.parameters())
-    ep_len_list = []
+    # ep_len_list = []
 
     for i in range(params["epochs"]):
         state_values, logprobs, rewards, G = run_episode_N(worker_env, worker_model, params["N_steps"])
         actor_loss, critic_loss, ep_len = update_params_N(worker_opt, state_values, logprobs, rewards, G)
-        ep_len_list.append(ep_len)
+        # ep_len_list.append(ep_len)
         with lock:
             counter.value = counter.value + 1
             print(counter.value)
+
+    # print(ep_len_list)
 
 def run_episode_N(worker_env, worker_model, N_steps=10):
     cur_state = torch.from_numpy(worker_env.reset()[0]).float()
