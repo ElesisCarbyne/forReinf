@@ -43,7 +43,7 @@ def unpack_params(params, layers):
 
     return unpacked_params
 
-def construct_model(state_dict, parameters_set):
+def reconstruct_state_dict(state_dict, parameters_set):
     for i, key in enumerate(state_dict):
         state_dict[key].copy_(parameters_set[i]) # 모델의 매개변수 텐서를 개체의 매개변수 텐서로 모두 덮어씌운다
 
@@ -64,7 +64,7 @@ def worker(pop, layers):
     ''' 학습 후 시험(test) '''
     max_idx = max_gene(pop)
     model = Model(layers)
-    model.load_state_dict(construct_model(model.state_dict(), unpack_params(pop[max_idx]["params"], layers))) # 개체를 토대로 모델을 구성한다
+    model.load_state_dict(reconstruct_state_dict(model.state_dict(), unpack_params(pop[max_idx]["params"], layers))) # 개체를 토대로 모델을 구성한다
     
     env = gym.make("CartPole-v1", render_mode="human") # 카트폴 환경 불러오기
     cur_state = torch.from_numpy(env.reset()[0]).float() # 환경 초기화 및 초기 상태 반환
@@ -75,6 +75,7 @@ def worker(pop, layers):
         action = torch.distributions.categorical.Categorical(logits=logits).sample() # 옆의 코드는 카테고리컬 분포 말고 다항 분포로도 구현할 수 있다
                                                                                      # logit에 근거한 확률분포를 바탕으로 2개의 행동 중 하나를 뽑는다
         next_state, _, done, _, _ = env.step(action.item())
+        print(done)
         if done:
             print("Lost: rechead end of game")
             return
