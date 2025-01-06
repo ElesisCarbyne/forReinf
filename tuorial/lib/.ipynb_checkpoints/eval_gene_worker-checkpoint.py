@@ -76,4 +76,4 @@ def evaluate(batch, layers, params_set, fitness_set):
         fitness_set[idx] = score
         score = 0
         done = False
-    print("here!!!")
+    # print("here!!!")

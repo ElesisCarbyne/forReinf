@@ -22,6 +22,7 @@ def next_generation(tour_quota, mut_rate, tournament_size, params_set, fitness_s
     temp = []
 
     ''' 자손 개체 생성 '''
+    print(f"tour_quota : {tour_quota}")
     for i in range(*tour_quota):
         # 토너먼트 생성 및 부모 개체 선정
         tournament = np.random.randint(low=0, high=lp, size=(int(tournament_size*lp))) # 토너먼트에 참여할 개체를 추출한다
@@ -37,11 +38,11 @@ def next_generation(tour_quota, mut_rate, tournament_size, params_set, fitness_s
     # 모든 worker 프로세스가 할당받은 토너먼트로부터 자손 개체의 생성을 완료할 때까지 대기(그렇지 않으면 다른 프로세스가 현세대 개체군으로 자손 개체를 생성할 수 없다)
     event_count += 1
     while True:
-        if event_count == 8 : break
+        if event_count == 6 : break
     print(f"event_count : {event_count}")
     
     # 1번 프로세스가 30개의 토너먼트(토너먼트 범위 [0:30])를 처리했다면 60개의 자손 개체가 생성된다
     # 그리고 이 60개의 자손 개체는 현세대 개체군의 인덱스 범위 [0:60]에 대입한다
     # 마찬가지의 논리로 2번 프로세스로부터(토너먼트 범위 [30:60]) 생성된 60개의 자손 개체는 현세대 개체군의 인덱스 범위 [60:120]에 대입한다
     # 위와 같은 과정을 모든 프로세스에서 수행하여 기존의 개체군을 새로운 개체군으로 갱신하도록 하는 것이 아래 인덱스 슬라이싱의 의미이다
-    params_set[2*tour_quota[0]:2*tour_quota[1]] = temp[:]
+    params_set[2*tour_quota[0]:2*tour_quota[1]] = torch.stack(temp, dim=0)[:]
