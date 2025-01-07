@@ -11,18 +11,20 @@ def recombine(x1, x2):
     return child1, child2
 
 def mutate(x, rate=0.01):
+    x_ = x
     num_to_change = int(rate*x.shape[0]) # 자손 개체의 매개변수들 중 변이시킬 매개변수 비율을 결정한다
     idx = np.random.randint(low=0, high=x.shape[0], size=(num_to_change,)) # 결정된 비율만큼의 매개변수 인덱스를 반환한다
-    x[idx] = torch.randn(num_to_change) / 10.0 # 선택된 매개변수들을 모두 무작위 실수 값으로 변경한다
+    x_[idx] = torch.randn(num_to_change) / 10.0 # 선택된 매개변수들을 모두 무작위 실수 값으로 변경한다
                                                # 10.0으로 굳이 나누어 준 것은 모든 무작위 실수 값들이 0.xxx의 형태로 표현되도록 만들어 주기 위함이다
-    return x
+    return x_
 
 def next_generation(tour_quota, mut_rate, tournament_size, params_set, fitness_set, event_count):
     lp = params_set.shape[0] # 개체군의 크기
     temp = []
 
     ''' 자손 개체 생성 '''
-    print(f"tour_quota : {tour_quota}")
+    # print(f"tour_quota : {tour_quota}")
+    print(fitness_set)
     for i in range(*tour_quota):
         # 토너먼트 생성 및 부모 개체 선정
         tournament = np.random.randint(low=0, high=lp, size=(int(tournament_size*lp))) # 토너먼트에 참여할 개체를 추출한다
