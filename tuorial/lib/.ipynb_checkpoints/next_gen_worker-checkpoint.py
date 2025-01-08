@@ -1,6 +1,7 @@
 ''' 다음 개체군 생성 worker 프로세스 '''
 import numpy as np
 import torch
+import random
 
 def recombine(x1, x2):
     split_pt = np.random.randint(x1.shape[0]) # pt = point, 부모 개체의 교차점을 무작위로 추출한다
@@ -11,23 +12,21 @@ def recombine(x1, x2):
     return child1, child2
 
 def mutate(x, rate=0.01):
-    x_ = x
     num_to_change = int(rate*x.shape[0]) # 자손 개체의 매개변수들 중 변이시킬 매개변수 비율을 결정한다
-    idx = np.random.randint(low=0, high=x.shape[0], size=(num_to_change,)) # 결정된 비율만큼의 매개변수 인덱스를 반환한다
-    x_[idx] = torch.randn(num_to_change) / 10.0 # 선택된 매개변수들을 모두 무작위 실수 값으로 변경한다
+    idx = random.sample(range(0, x.shape[0]), k=num_to_change) # 결정된 비율만큼의 매개변수 인덱스를 반환한다
+    x[idx] = torch.randn(num_to_change) / 10.0 # 선택된 매개변수들을 모두 무작위 실수 값으로 변경한다
                                                # 10.0으로 굳이 나누어 준 것은 모든 무작위 실수 값들이 0.xxx의 형태로 표현되도록 만들어 주기 위함이다
-    return x_
+    return x
 
 def next_generation(tour_quota, mut_rate, tournament_size, params_set, fitness_set, event_count):
     lp = params_set.shape[0] # 개체군의 크기
     temp = []
 
     ''' 자손 개체 생성 '''
-    # print(f"tour_quota : {tour_quota}")
-    print(fitness_set)
+    print(f"tour_quota : {tour_quota}")
     for i in range(*tour_quota):
         # 토너먼트 생성 및 부모 개체 선정
-        tournament = np.random.randint(low=0, high=lp, size=(int(tournament_size*lp))) # 토너먼트에 참여할 개체를 추출한다
+        tournament = random.sample(range(0, lp), k=int(tournament_size*lp)) # 토너먼트에 참여할 개체를 추출한다
         tournament = np.array([[idx, fitness_set[idx]] for idx in tournament]) # 토너먼트를 재구성한다
         tournament = tournament[tournament[:, 1].argsort()] # 토너먼트에 속한 개체들을 적합도 점수를 기준으로 내림차순으로 정렬한 결과가 반환된다
         p1, p2 = params_set[tournament[-1][0]], params_set[tournament[-2][0]]
